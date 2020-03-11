@@ -11,7 +11,8 @@ export default class Filter extends Component {
       currentOperators: [],
       selectedOperator: {},
       selectedFilterField: {},
-      selectedValue: null
+      selectedValue: "",
+      savedList: { from: 0, size: 10, filters: [] }
     };
   }
 
@@ -38,12 +39,19 @@ export default class Filter extends Component {
   };
 
   componentDidMount = () => {
+    let defaultFilterField = this.getDefaultFilterField();
+    let defaultOperatorFields = this.getOperatorByTypeId(
+      defaultFilterField.dataTypeId
+    );
     this.setState({
-      selectedFilterField: this.state.filterFields[1],
-      currentOperators: this.getOperatorByTypeId(
-        this.state.filterFields[1].dataTypeId
-      )
+      selectedFilterField: defaultFilterField,
+      currentOperators: defaultOperatorFields,
+      selectedOperator: defaultOperatorFields[0]
     });
+  };
+
+  getDefaultFilterField = () => {
+    return this.state.filterFields[1];
   };
 
   onColumnFieldChange = event => {
@@ -54,11 +62,46 @@ export default class Filter extends Component {
         selectedFilterField.dataTypeId
       ),
       selectedFilterField,
-      selectedValue: null
+      selectedValue: ""
+    });
+  };
+
+  onOperatorFieldChange = event => {
+    let id = Number(event.currentTarget.value);
+    let selectedOperatorField = this.state.operatorFields.find(x => x.id == id);
+    this.setState({
+      selectedOperatorField
     });
   };
   onValueChange = (event, params) => {
     this.setState({ selectedValue: event.currentTarget.value });
+  };
+
+  onAddFilter = () => {
+    const {
+      selectedFilterField,
+      selectedOperator,
+      savedList: { filters },
+      selectedValue
+    } = this.state;
+
+    let index = filters.length + 1;
+    let filter = {
+      index,
+      operatorId: selectedOperator.id,
+      filterFieldId: selectedFilterField.id,
+      value: selectedValue
+    };
+    let defaultFilterField = this.getDefaultFilterField();
+    this.setState({
+      savedList: { filters: [...filters, filter] },
+      selectedFilterField: defaultFilterField,
+      currentOperators: this.getOperatorByTypeId(defaultFilterField.dataTypeId),
+      selectedOperator: this.getOperatorByTypeId(
+        defaultFilterField.dataTypeId
+      )[0],
+      selectedValue: ""
+    });
   };
 
   render() {
@@ -67,7 +110,9 @@ export default class Filter extends Component {
       operatorFields,
       currentOperators,
       selectedFilterField,
-      selectedValue
+      selectedValue,
+      savedList: { filters },
+      selectedOperator
     } = this.state;
     return (
       <div>
@@ -85,7 +130,11 @@ export default class Filter extends Component {
         </div>
 
         <div>
-          <select style={{ float: "left" }}>
+          <select
+            style={{ float: "left" }}
+            onChange={this.onOperatorFieldChange}
+            value={selectedOperator.id}
+          >
             {currentOperators.map(f => (
               <option key={f.id} value={f.id}>
                 {f.name}
@@ -104,8 +153,26 @@ export default class Filter extends Component {
         </div>
 
         <div>
-          <button> Add Filter</button>
+          <button onClick={this.onAddFilter}> Add Filter</button>
         </div>
+
+        <hr />
+        <table>
+          <thead>
+            <th>Field Name</th>
+            <th>operator Name</th>
+            <th>Value</th>
+          </thead>
+          <tbody>
+            {filters.map(f => (
+              <tr>
+                <td>{filterFields.find(x => x.id == f.filterFieldId).name} </td>
+                <td> {operatorFields.find(x => x.id == f.operatorId).name} </td>
+                <td> {f.value} </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }
